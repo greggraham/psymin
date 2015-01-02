@@ -8,21 +8,25 @@ final int LISTEN_BC = 180;
 final int NORMAL_BC = 80;
 final int FRAME_RATE = 30;
 final int DOWN_TIME = 18;
+final int INTERVAL_TIME = 14;
 
 char[] letters = {'q', 'w', 'e', 'r'};
 color[] colors = {#FF0000, #00A000, #3060FF, #FFFF00};
 int[] buttonFreqs = {200, 300, 400, 500};
+int gameOverFreq = 60;
 boolean[] lit = {false, false, false, false};
 
 ArrayList<Integer> pattern = new ArrayList<Integer>();
+int patternIndex = 0;
 
 int timer = 0;
 // State machine
-final int ST_ADD_EL = 1;
+final int ST_ADD = 1;
 final int ST_PAUSE = 2;
-final int ST_PLAY_EL = 3;
+final int ST_PLAY = 3;
 final int ST_LISTEN = 4;
 final int ST_PRESSED = 5;
+final int ST_END = 6;
 
 int state;
 
@@ -67,7 +71,6 @@ void playButton(int buttonNum) {
   env.addSegment(0.5, 20);
   env.addSegment(0.4, 400);
   env.addSegment(0.0, 50);
-  state = ST_PRESSED;
 }
 
 void clearButtons() {
@@ -88,7 +91,17 @@ boolean buttonsLit() {
 void keyPressed() {
   int num = letterToInt(key);
   if (state == ST_LISTEN && num > -1) {
-    playButton(num);
+    if (num == pattern.get(patternIndex).intValue()) {
+      playButton(num);
+      patternIndex++;
+      state = ST_PRESSED;
+    } else {
+      wp.setFrequency(gameOverFreq);
+      env.addSegment(0.5, 20);
+      env.addSegment(0.4, 1000);
+      env.addSegment(0.0, 50);
+      state = ST_END;
+    }
   }
 }
 
@@ -110,19 +123,37 @@ void setup() {
   ac.out.addInput(g);
   ac.start();
   
-  state = ST_LISTEN;
+  state = ST_ADD;
 }
 
 void draw() {
   switch (state) {
-    case ST_ADD_EL:
+    case ST_ADD:
       background(NORMAL_BC);
+      pattern.add(new Integer(floor(random(letters.length))));
+      patternIndex = 0;
+      timer = INTERVAL_TIME;
+      state = ST_PAUSE;
       break;
     case ST_PAUSE:
       background(NORMAL_BC);
+      if (timer > 0) {
+        timer--;
+      } else {
+        clearButtons();
+        if (patternIndex < pattern.size()) {
+          state = ST_PLAY;
+        } else {
+          patternIndex = 0;
+          state = ST_LISTEN;
+        }
+      }
       break;
-    case ST_PLAY_EL:
+    case ST_PLAY:
       background(NORMAL_BC);
+      playButton(pattern.get(patternIndex).intValue());
+      patternIndex++;
+      state = ST_PAUSE;
       break;
     case ST_LISTEN:
       background(LISTEN_BC);
@@ -133,12 +164,22 @@ void draw() {
         timer--;
       } else {
         clearButtons();
-        state = ST_LISTEN;
+        if (patternIndex < pattern.size()) {
+          state = ST_LISTEN;
+        } else {
+          state = ST_ADD;
+        }
       }
       break;
+    default:
+      background(NORMAL_BC);
+      fill(255);
+      text("Game Over: " + (pattern.size() - 1), 30, height/2 + 20);
   }
-  for (int i = 0; i < letters.length; i++) {
-    drawBox(i, lit[i]);
+  if (state != ST_END) {
+    for (int i = 0; i < letters.length; i++) {
+      drawBox(i, lit[i]);
+    }
   }
 }
 
