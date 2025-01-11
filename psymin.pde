@@ -136,9 +136,7 @@ void keyPressed() {
 // Processing setup function
 void setup() {
   // Setup the window and other Processing parameters
-  int h = BOX_SIZE + MARGIN * 2;
-  int w = letters.length * (BOX_SIZE + MARGIN) + MARGIN;
-  size(w, h);
+  size(500, 140);
   frameRate(FRAME_RATE);
   font = loadFont("GillSansMT-Bold-60.vlw");
   textFont(font);
@@ -261,4 +259,3 @@ void draw() {
     }
   }
 }
-
